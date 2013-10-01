@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<XnaContent>
+  <Asset Type="Engine.ParticlesSettings.ParticleSystemSettings">
+    <MinNumParticles>50</MinNumParticles>
+    <MaxNumParticles>100</MaxNumParticles>
+    <TextureFilename>Particles\explosion</TextureFilename>
+    <MinInitialSpeed>100</MinInitialSpeed>
+    <MaxInitialSpeed>500</MaxInitialSpeed>
+    <AccelerationMode>EndVelocity</AccelerationMode>
+    <EndVelocity>0</EndVelocity>
+    <MinRotationSpeed>-90</MinRotationSpeed>
+    <MaxRotationSpeed>90</MaxRotationSpeed>
+    <MinLifetime>.5</MinLifetime>
+    <MaxLifetime>1.0</MaxLifetime>
+    <MinSize>.5</MinSize>
+    <MaxSize>1</MaxSize>
+    <SourceBlend>SourceAlpha</SourceBlend>
+    <DestinationBlend>Zero</DestinationBlend>
+  </Asset>
+</XnaContent>

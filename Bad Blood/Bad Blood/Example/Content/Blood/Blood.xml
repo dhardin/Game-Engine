@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<XnaContent>
+  <!-- TODO: replace this Asset with your own XML asset data. -->
+  <Asset Type="System.String[]">
+    <Item>Blood\B1.png</Item>
+    <Item>Blood\B2.png</Item>
+    <Item>Blood\B3.png</Item>
+    <Item>Blood\B4.png</Item>
+    <Item>Blood\B5.png</Item>
+    <Item>Blood\B6.png</Item>
+    <Item>Blood\B7.png</Item>
+    <Item>Blood\B8.png</Item>
+    <Item>Blood\B9.png</Item>
+  </Asset>
+</XnaContent>
