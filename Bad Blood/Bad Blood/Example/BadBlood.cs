@@ -18,7 +18,70 @@ using Game;
 
 
 namespace Game {
+    struct WorldObjectHolder
+    {
+        public GameObject gameObject;
+        public int toLevel, fromLevel;
+        public ObjectType objectType;
+    }
+    public class MultiMap<V>
+    {
+        
+        // 1
+        Dictionary<ObjectType, List<V>> _dictionary =
+        new Dictionary<ObjectType, List<V>>();
+
+        // 2
+        public void Add(ObjectType key, V value)
+        {
+            List<V> list;
+            if (this._dictionary.TryGetValue(key, out list))
+            {
+                // 2A.
+                list.Add(value);
+            }
+            else
+            {
+                // 2B.
+                list = new List<V>();
+                list.Add(value);
+                this._dictionary[key] = list;
+            }
+        }
+
+        // 3
+        public IEnumerable<ObjectType> Keys
+        {
+            get
+            {
+                return this._dictionary.Keys;
+            }
+        }
+
+        // 4
+        public List<V> this[ObjectType key]
+        {
+            get
+            {
+                List<V> list;
+                if (!this._dictionary.TryGetValue(key, out list))
+                {
+                    list = new List<V>();
+                    this._dictionary[key] = list;
+                }
+                return list;
+            }
+        }
+    }
+
+    public enum ObjectType
+    {
+        Projectile,
+        Enemy,
+        Player
+    }
     public class TopDownGame : Microsoft.Xna.Framework.Game {
+        const int MAX_LAYERS = 4;
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
         Map map;
@@ -26,15 +89,12 @@ namespace Game {
         Rectangle viewportRect;
         SpriteFont gameFont;
         bool collision;
-        //Vector2 orgin;
-        //float rotation;
         List<Polygon> collisionTiles = new List<Polygon>();
+        List<WorldObjectHolder> WorldObjectManager = new List<WorldObjectHolder>();
+        
         Player player;
-        //Polygon playerPoly = new Polygon();
-        // At the top of your class:
         Texture2D pixel;
-        //int currentLevel = 1;
-
+        
         public TopDownGame ()
         {
             graphics = new GraphicsDeviceManager(this);
@@ -47,22 +107,30 @@ namespace Game {
 #endif
         }
 
+        public List<MultiMap<GameObject>> WorldObjects= new List<MultiMap<GameObject>>();
+       
+
         protected override void LoadContent () {
             spriteBatch = new SpriteBatch(GraphicsDevice);
-
+         
             //Load content
-
             map = Map.Load(Path.Combine(Content.RootDirectory, "map.tmx"), Content);
-            for (int i = -1; i < 2; i++)
-                map.Layers["meta " + i].Opacity = 0f;
-            map.Layers["Props 0"].Opacity = 5f;
             
             Projectile.Texture = Content.Load<Texture2D>(@"Projectile\laser");
-            player = new Player(PlayerIndex.One);
-            player.LoadContent(Content);
+           
+            
+           
             Player.Texture = Content.Load<Texture2D>(@"Player\Player");
-            player.Initialize(new Vector2(map.ObjectGroups["objects"].Objects["waypoint1"].X, map.ObjectGroups["objects"].Objects["waypoint1"].Y), 0f, 1);
+            
+            
+            //now we'll build our list of world objects
+            //this list corresponds 1 to 1 with the number of max layers
+            for (int i = 0; i < MAX_LAYERS; i++)
+                WorldObjects.Add(new MultiMap<GameObject>());
 
+            WorldObjects.ElementAt(2).Add(ObjectType.Player, new Player(PlayerIndex.One));
+            WorldObjects.ElementAt(2)[ObjectType.Player].ElementAt(0).Initialize(new Vector2(map.ObjectGroups["objects"].Objects["waypoint1"].X, map.ObjectGroups["objects"].Objects["waypoint1"].Y), 0f, 2);
+            
             gameFont = Content.Load<SpriteFont>("GameFont");
             // Somewhere in your LoadContent() method:
             pixel = new Texture2D(GraphicsDevice, 1, 1, false, SurfaceFormat.Color);
@@ -74,79 +142,103 @@ namespace Game {
         }
 
         protected override void Update (GameTime gameTime) {
-            GamePadState gamePadState = GamePad.GetState(PlayerIndex.One);
-            KeyboardState keyState = Keyboard.GetState();
-            MouseState mouseState = Mouse.GetState();
-            float scrollx = 0, scrolly = 0;
-
-
-            if (keyState.IsKeyDown(Keys.Left) || keyState.IsKeyDown(Keys.A))
+            
+            for (int i = 0; i < WorldObjects.Count; i++)
             {
-                scrollx = -1;
+                foreach (ObjectType objectType in WorldObjects.ElementAt(i).Keys)
+                {
+                    foreach (GameObject gameObject in WorldObjects.ElementAt(i)[objectType])
+                    {
+                        WorldObjectHolder worldObjectHolder = new WorldObjectHolder();
+                       
+                        switch (objectType)
+                        {
+                                
+                            case ObjectType.Player:
+                                gameObject.HandleInput(gameTime, GraphicsDevice.Viewport, ref map);
+                                if (gameObject.Trans)
+                                {
+                                    worldObjectHolder.gameObject = gameObject;
+                                    worldObjectHolder.toLevel = gameObject.Layer;
+                                    worldObjectHolder.fromLevel = gameObject.PreviousLevel;
+                                    worldObjectHolder.objectType = ObjectType.Player;
+                                    WorldObjectManager.Add(worldObjectHolder);
+                                }
+                                if (gameObject.pState.CurrentState.Equals(ProcessState.Shooting))
+                                {                               
+                                    worldObjectHolder.gameObject = new Projectile(gameObject.Position, gameObject.rotatedRect.Rotation, ProjectileType.Standard, gameObject.Layer);
+                                    worldObjectHolder.fromLevel = gameObject.Layer;
+                                    worldObjectHolder.toLevel = gameObject.Layer;
+                                    worldObjectHolder.objectType = ObjectType.Projectile;
+                                    WorldObjectManager.Add(worldObjectHolder);
+                                }
+                                    //WorldObjects.ElementAt(i).Add(ObjectType.Projectile, new Projectile(player.Position, player.Rotation, ProjectileType.Standard, player.Layer));
 
-            }
-            if (keyState.IsKeyDown(Keys.Right) || keyState.IsKeyDown(Keys.D))
-            {
-                scrollx = 1;
-            }
-            if (keyState.IsKeyDown(Keys.Up) || keyState.IsKeyDown(Keys.W))
-            {
-                scrolly = 1;
-            }
-            if (keyState.IsKeyDown(Keys.Down) || keyState.IsKeyDown(Keys.S))
-            {
-                scrolly = -1;
-            }
-            //if (keyState.IsKeyDown(Keys.Space))
-            //{
+                                break;
+                            case ObjectType.Projectile:
+                                if (gameObject.Trans)
+                                {
+                                    worldObjectHolder.gameObject = gameObject;
+                                    worldObjectHolder.toLevel = gameObject.Layer;
+                                    worldObjectHolder.fromLevel = gameObject.PreviousLevel;
+                                    worldObjectHolder.objectType = ObjectType.Projectile;
+                                    WorldObjectManager.Add(worldObjectHolder);
+                                }
+                                if (!gameObject.Active)
+                                {
+                                    worldObjectHolder.gameObject = gameObject;//new Projectile(gameObject.Position, gameObject.rotatedRect.Rotation, ProjectileType.Standard, gameObject.Layer);
+                                    worldObjectHolder.fromLevel = gameObject.Layer;
+                                    worldObjectHolder.toLevel = gameObject.Layer;
+                                    worldObjectHolder.objectType = ObjectType.Projectile;
+                                    WorldObjectManager.Add(worldObjectHolder);
+                                }
+                                else
+                                    gameObject.Update(gameTime, ref map);
+                                break;
+                            default:
+                                //gameObject.Update(gameTime);
+                                break;
+                        };
 
-            //    player.Position = new Vector2(map.ObjectGroups["objects"].Objects["waypoint1"].X, map.ObjectGroups["objects"].Objects["waypoint1"].Y);
-            //}
-            //if (mouseState.LeftButton == ButtonState.Pressed)
-            //{
-            //    player.Attack(Content);
-            //}
+                    }
+                }
+            }
+            
+            foreach (WorldObjectHolder worldObjectHolder in WorldObjectManager)
+            {
+                if (worldObjectHolder.gameObject.Trans == true)
+                {
+                    worldObjectHolder.gameObject.Trans = false;
+                    WorldObjects[worldObjectHolder.toLevel].Add(worldObjectHolder.objectType, worldObjectHolder.gameObject);
+                    WorldObjects[worldObjectHolder.fromLevel][worldObjectHolder.objectType].Remove(worldObjectHolder.gameObject);
+                }
+                switch (worldObjectHolder.objectType)
+                {
+                    case ObjectType.Player:
+                       
+                        
+                        break;
+                    case ObjectType.Projectile:
+                       if (worldObjectHolder.gameObject.Active)
+                            WorldObjects[worldObjectHolder.toLevel].Add(worldObjectHolder.objectType, worldObjectHolder.gameObject);
+                        else
+                            WorldObjects[worldObjectHolder.toLevel][worldObjectHolder.objectType].Remove(worldObjectHolder.gameObject);
+                        break;
+                    default:
+                        break;
+                }
+            }
 
-            player.HandleInput(gameTime, GraphicsDevice.Viewport, ref map);
+            WorldObjectManager.Clear();
+
+            //after our player updates, let's check their state to make any world changes
+            
            
 
             base.Update(gameTime);
         }
 
-        //void fixCollision(GameObject obj, Vector2 objVelocity)
-        //{
-        //    // A this point we've already determined that the boxes intersect...
-        //    objVelocity *= -1;
-           
-        //    for (int i = 0; i< collisionTiles.Count(); i++)
-        //    {
-        //        Vector2 polygonATranslation = new Vector2();
-
-        //        PolygonCollisionResult r = PolygonCollision(playerPoly, collisionTiles.ElementAt(i), objVelocity);
-
-        //        if (r.WillIntersect)
-        //        {
-        //            // Move the polygon by its velocity, then move
-        //            // the polygons appart using the Minimum Translation Vector
-        //            polygonATranslation = objVelocity + r.MinimumTranslationVector;
-        //        }
-        //        else
-        //        {
-        //            // Just move the polygon by its velocity
-        //            polygonATranslation = objVelocity;
-        //        }
-
-        //        playerPoly.Offset(polygonATranslation);
-
-        //        obj.X = (int)playerPoly.Points[0].X;
-        //        obj.Y = (int)playerPoly.Points[0].Y;
-
-        //        if (IsColliding(obj) == false)
-        //            break;//no more tiles to collide with so break out of collision fix
-
-        //    }
-            
-        //}
+ 
 
         protected override void Draw(GameTime gameTime)
         {
@@ -155,8 +247,18 @@ namespace Game {
             base.Draw(gameTime);
 
             spriteBatch.Begin();
-            map.Draw(spriteBatch, new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height), viewportPosition, player);
-            spriteBatch.DrawString(gameFont, "Projectiles: " + player.projectiles.Count, new Vector2(GraphicsDevice.Viewport.Width * 0.8f, 10f), Color.White);
+            map.Draw(spriteBatch, new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height), viewportPosition, WorldObjects);
+
+            //count the total projectiles in the world
+            int numProjectiles = 0;
+            for(int i = 0; i < WorldObjects.Count; i++)
+                numProjectiles += WorldObjects[i][ObjectType.Projectile].Count;
+            spriteBatch.DrawString(gameFont, "Projectiles: " + numProjectiles, new Vector2(GraphicsDevice.Viewport.Width * 0.8f, 10f), Color.White);
+            //spriteBatch.DrawString(gameFont, "State: " + player.pState.ToString(), new Vector2(GraphicsDevice.Viewport.Width * 0.8f, 25f), Color.White);
+            //if (player.pState.ToString().Equals("Grappling"))
+            //    spriteBatch.DrawString(gameFont, "Grapple Time: " + (gameTime.TotalGameTime - player.previousGrappleTime), new Vector2(GraphicsDevice.Viewport.Width * 0.7f, 40f), Color.White);
+            //if (player.pState.ToString().Equals("Meleeing"))
+            //    spriteBatch.DrawString(gameFont, "MeleeTime Time: " + (gameTime.TotalGameTime - player.previousMeleeTime), new Vector2(GraphicsDevice.Viewport.Width * 0.7f, 55f), Color.White);
             //DrawBorder(player.Rect, 1, Color.LightGreen);
             //spriteBatch.Draw(player.Texture, player.Position, Color.White); 
             //player.Draw(spriteBatch, player.Position, viewportPosition, 100f, player.Rect.Width, player.Rect.Height);
@@ -190,43 +292,7 @@ namespace Game {
                                             rectangleToDraw.Width,
                                             thicknessOfBorder), borderColor);
         }
-        //public bool IsColliding(GameObject obj)
-        //{
-        //    if (obj.X < 0)
-        //        obj.X = 0;
-        //    if (obj.Y < 0)
-        //        obj.Y = 0;
-        //    collision = false;
-        //    for (int y = obj.Y; y <= (obj.Y + obj.Height); y += map.TileHeight)
-        //    {
-        //        //
-        //        //TO-DO: Roated Polygons
-        //        //
-        //        for (int x = obj.X; x <= (obj.X + obj.Width); x += map.TileWidth)
-        //        {
-        //            int tileXindex = (int)x / map.TileWidth;
-        //            int tileYindex = (int)y / map.TileHeight;
-
-        //            if (map.Layers["meta"].GetTile(tileXindex, tileYindex) > 0)
-        //            {
-        //                //first lets clear the tile list since this is a new collision
-        //                if (collision == false)
-        //                    collisionTiles.Clear();
-        //                collisionTiles.Add(new Polygon());
-        //                collisionTiles.Last().Points.Add(new Vector2(tileXindex * map.TileWidth, tileYindex * map.TileHeight));
-        //                collisionTiles.Last().Points.Add(new Vector2(tileXindex * map.TileWidth + map.TileWidth, tileYindex * map.TileHeight));
-        //                collisionTiles.Last().Points.Add(new Vector2(tileXindex * map.TileHeight + map.TileWidth, tileYindex * map.TileHeight + map.TileHeight));
-        //                collisionTiles.Last().Points.Add(new Vector2(tileXindex * map.TileHeight, tileYindex * map.TileHeight + map.TileHeight));
-        //                collisionTiles.Last().BuildEdges();
-        //                collision = true;
-        //            }
-        //        }
-        //    }
-        //    if (collision)
-        //        return true;
-        //    else
-        //        return false;
-        //}
+     
        
         // Calculate the projection of a polygon on an axis
 // and returns it as a [min, max] interval

@@ -20,12 +20,162 @@ using Engine.Sprites;
 
 namespace Game
 {
+    public enum ProcessState
+    {
+        Dead,
+        Alive,
+        Idle,
+        Moving,
+        Shooting,
+        Meleeing,
+        Grappling,
+        Injured
+
+    }
+
+    public enum Command
+    {
+        None,
+        Move,
+        Melee,
+        Shoot,
+        Grapple,
+        Attacked,
+        Killed,
+        Disengage
+    }
+
+    public class Process
+    {
+        //public event ChangedEventHandler Changed;
+
+        //// Invoke the Changed event; called whenever list changes
+        //protected virtual void OnChanged(EventArgs e)
+        //{
+        //    if (Changed != null)
+        //        Changed(this, e);
+        //}
+
+        public override string ToString()
+        {
+            switch (CurrentState)
+            {
+                case ProcessState.Dead:
+                    return "Dead";
+                    break;
+                case ProcessState.Alive:
+                    return "Alive";
+                    break;
+                case ProcessState.Idle:
+                    return "Idle";
+                    break;
+                case ProcessState.Moving:
+                    return "Moving";
+                    break;
+                case ProcessState.Shooting:
+                    return "Shooting";
+                    break;
+                case ProcessState.Meleeing:
+                    return "Meleeing";
+                    break;
+                case ProcessState.Grappling:
+                    return "Grappling";
+                    break;
+                case ProcessState.Injured:
+                    return "Injured";
+                    break;
+                default:
+                    return "Undefined";
+                    break;
+            };
+        }
+        class StateTransition
+        {
+            readonly ProcessState CurrentState;
+            readonly Command Command;
+
+            public StateTransition(ProcessState currentState, Command command)
+            {
+                CurrentState = currentState;
+                Command = command;
+            }
+
+            public override int GetHashCode()
+            {
+                return 17 + 31 * CurrentState.GetHashCode() + 31 * Command.GetHashCode();
+            }
+
+            public override bool Equals(object obj)
+            {
+                StateTransition other = obj as StateTransition;
+                return other != null && this.CurrentState == other.CurrentState && this.Command == other.Command;
+            }
+        }
+
+        Dictionary<StateTransition, ProcessState> transitions;
+        public ProcessState CurrentState { get; private set; }
+
+        public Process()
+        {
+            CurrentState = ProcessState.Alive;
+            transitions = new Dictionary<StateTransition, ProcessState>
+            {
+                { new StateTransition(ProcessState.Alive, Command.Move), ProcessState.Moving },
+                { new StateTransition(ProcessState.Alive, Command.None), ProcessState.Idle },
+                { new StateTransition(ProcessState.Alive, Command.Attacked), ProcessState.Injured },
+                { new StateTransition(ProcessState.Alive, Command.Grapple), ProcessState.Grappling },
+                { new StateTransition(ProcessState.Injured, Command.Killed), ProcessState.Dead },
+                { new StateTransition(ProcessState.Moving, Command.Shoot), ProcessState.Shooting },
+                { new StateTransition(ProcessState.Moving, Command.Melee), ProcessState.Meleeing },
+                { new StateTransition(ProcessState.Moving, Command.Grapple), ProcessState.Grappling },
+                { new StateTransition(ProcessState.Moving, Command.None), ProcessState.Idle},
+                { new StateTransition(ProcessState.Moving, Command.Move), ProcessState.Moving},
+                { new StateTransition(ProcessState.Idle, Command.Shoot), ProcessState.Shooting },
+                { new StateTransition(ProcessState.Idle, Command.Melee), ProcessState.Meleeing },
+                { new StateTransition(ProcessState.Idle, Command.Grapple), ProcessState.Grappling },
+                { new StateTransition(ProcessState.Idle, Command.Move), ProcessState.Moving},
+                 { new StateTransition(ProcessState.Idle, Command.None), ProcessState.Idle},
+                 { new StateTransition(ProcessState.Shooting, Command.None), ProcessState.Idle},
+                 { new StateTransition(ProcessState.Shooting, Command.Move), ProcessState.Moving},
+                 { new StateTransition(ProcessState.Shooting, Command.Melee), ProcessState.Meleeing},
+                  { new StateTransition(ProcessState.Shooting, Command.Shoot), ProcessState.Shooting},
+                 { new StateTransition(ProcessState.Shooting, Command.Grapple), ProcessState.Grappling},
+                { new StateTransition(ProcessState.Meleeing, Command.Move), ProcessState.Meleeing},
+                { new StateTransition(ProcessState.Meleeing, Command.Grapple), ProcessState.Grappling},
+                { new StateTransition(ProcessState.Meleeing, Command.None), ProcessState.Meleeing},
+                { new StateTransition(ProcessState.Meleeing, Command.Disengage), ProcessState.Idle},
+                { new StateTransition(ProcessState.Meleeing, Command.Melee), ProcessState.Meleeing},
+               // { new StateTransition(ProcessState.Meleeing, Command.Shoot), ProcessState.Shooting},
+                 // { new StateTransition(ProcessState.Grappling, Command.Move), ProcessState.Moving},
+                //{ new StateTransition(ProcessState.Grappling, Command.Grapple), ProcessState.Grappling},
+                { new StateTransition(ProcessState.Grappling, Command.None), ProcessState.Grappling},
+                 { new StateTransition(ProcessState.Grappling, Command.Disengage), ProcessState.Idle}
+                //{ new StateTransition(ProcessState.Grappling, Command.Shoot), ProcessState.Shooting},
+
+            };
+        }
+
+        public ProcessState GetNext(Command command)
+        {
+            StateTransition transition = new StateTransition(CurrentState, command);
+            ProcessState nextState;
+            if (!transitions.TryGetValue(transition, out nextState))
+                throw new Exception("Invalid transition: " + CurrentState + " -> " + command);
+            return nextState;
+        }
+
+        public ProcessState MoveNext(Command command)
+        {
+            CurrentState = GetNext(command);
+            return CurrentState;
+        }
+    }
     public class GameObject
     {
-       
+        public Process pState { get; set; }
         public float Rotation;
         public Vector2 Orgin;
-        public int Layer;
+        public int Layer { get; set; }
         public int Height;
         public int Width;
         public Polygon Poly;
@@ -41,6 +191,10 @@ namespace Game
         public Vector2 Velocity;
         public RotatedRectangle rotatedRect;
         public List<Rectangle> tileCollisionChecks = new List<Rectangle>();
+        public bool Active { get; set; }
+
+        public bool Trans { get;  set;}
+        public int PreviousLevel { get; private set; }
 
         public Rectangle CollisionBounds
         {
@@ -57,7 +211,7 @@ namespace Game
         }
         
 
-        public bool CollidesWith(Rectangle rectangle, ref Vector2 newPosition)
+        public virtual bool CollidesWith(Rectangle rectangle, ref Vector2 newPosition)
         {
             Vector2 collisionDepth = RectangleExtensions.GetIntersectionDepth(CollisionBounds, rectangle);
 
@@ -72,31 +226,35 @@ namespace Game
             return collisionDepth != Vector2.Zero;
 
         }
-        public void Initialize(Vector2 position, float rotation, int layer)
+        public virtual void Initialize(Vector2 position, float rotation, int layer)
         {
 
             
-            this.Position = position;
-            this.Layer = layer;
-            this.Height = (int)(Math.Min(Texture.Height,Texture.Width) * SIZE_MOD);
-            this.Width = (int)(Math.Min(Texture.Height, Texture.Width) * SIZE_MOD);
-            this.Orgin = new Vector2(Texture.Width * 0.26f, Texture.Height / 2);
-            this.Rect = new Rectangle((int)this.Position.X, (int)this.Position.Y, this.Width, this.Height);  
+            Position = position;
+            Layer = layer;
+            Height = (int)(Math.Min(Texture.Height,Texture.Width) * SIZE_MOD);
+            Width = (int)(Math.Min(Texture.Height, Texture.Width) * SIZE_MOD);
+            Orgin = new Vector2(Texture.Width * 0.26f, Texture.Height / 2);
+            Rect = new Rectangle((int)Position.X, (int)Position.Y, Width, Height);  
             
             this.rotatedRect = new RotatedRectangle(Rect, rotation);
          
         }
-
-
-        public void Update(GameTime gameTime)
+        public virtual void Rotate() { }
+        public virtual void HandleInput(GameTime gameTime,Viewport v, ref Map map)
+        { }
+        public virtual void Update(GameTime gameTime)
         {
             //this.Rotate();
-            this.rotatedRect.ChangePosition(this.Position - this.Orgin/2);
-            this.rotatedRect.Rotation = this.Rotation;
-            this.Rect.Location = new Point((int)(this.Position.X - this.Orgin.X/2), (int)(this.Position.Y - this.Orgin.Y/2));    
+            rotatedRect.ChangePosition(this.Position - this.Orgin/2);
+           rotatedRect.Rotation = this.Rotation;
+            Rect.Location = new Point((int)(this.Position.X - this.Orgin.X/2), (int)(this.Position.Y - this.Orgin.Y/2));    
         }
 
-        public bool willCollideLevel(ref Map map, GameObject obj, Vector2 velocity, bool rotatedCollision)
+        public virtual void Update(GameTime gameTime, ref Map map)
+        {
+        }
+        public virtual bool willCollideLevel(ref Map map, GameObject obj, Vector2 velocity, bool rotatedCollision)
         {
 
             
@@ -104,10 +262,10 @@ namespace Game
             if (rotatedCollision)
             {
 
-                int lowestPoint = (int)(Math.Min((int)Math.Min(obj.rotatedRect.UpperLeftCorner().Y, obj.rotatedRect.UpperRightCorner().Y), (int)Math.Min(obj.rotatedRect.LowerLeftCorner().Y, obj.rotatedRect.LowerRightCorner().Y)) + velocity.Y - Orgin.Y / 2);
-                int highestPoint = (int)(Math.Max((int)Math.Max(obj.rotatedRect.UpperLeftCorner().Y, obj.rotatedRect.UpperRightCorner().Y), (int)Math.Max(obj.rotatedRect.LowerLeftCorner().Y, obj.rotatedRect.LowerRightCorner().Y)) + velocity.Y - Orgin.Y / 2);
-                int leftMostPoint = (int)(Math.Min((int)Math.Min(obj.rotatedRect.UpperLeftCorner().X, obj.rotatedRect.UpperRightCorner().X), (int)Math.Min(obj.rotatedRect.LowerLeftCorner().X, obj.rotatedRect.LowerRightCorner().X)) + velocity.X - Orgin.X / 2);
-                int rightMostPoint = (int)(Math.Max((int)Math.Max(obj.rotatedRect.UpperLeftCorner().X, obj.rotatedRect.UpperRightCorner().X), (int)Math.Max(obj.rotatedRect.LowerLeftCorner().X, obj.rotatedRect.LowerRightCorner().X)) + velocity.X - Orgin.X / 2);
+                int lowestPoint = (int)(Math.Min((int)Math.Min(obj.rotatedRect.UpperLeftCorner().Y, obj.rotatedRect.UpperRightCorner().Y), (int)Math.Min(obj.rotatedRect.LowerLeftCorner().Y, obj.rotatedRect.LowerRightCorner().Y)));
+                int highestPoint = (int)(Math.Max((int)Math.Max(obj.rotatedRect.UpperLeftCorner().Y, obj.rotatedRect.UpperRightCorner().Y), (int)Math.Max(obj.rotatedRect.LowerLeftCorner().Y, obj.rotatedRect.LowerRightCorner().Y)));
+                int leftMostPoint = (int)(Math.Min((int)Math.Min(obj.rotatedRect.UpperLeftCorner().X, obj.rotatedRect.UpperRightCorner().X), (int)Math.Min(obj.rotatedRect.LowerLeftCorner().X, obj.rotatedRect.LowerRightCorner().X)));
+                int rightMostPoint = (int)(Math.Max((int)Math.Max(obj.rotatedRect.UpperLeftCorner().X, obj.rotatedRect.UpperRightCorner().X), (int)Math.Max(obj.rotatedRect.LowerLeftCorner().X, obj.rotatedRect.LowerRightCorner().X)));
 
                 
                 for (int y = lowestPoint; y < highestPoint; y += map.TileHeight)
@@ -117,29 +275,39 @@ namespace Game
                     {
                         int tileXindex = (int)x / map.TileWidth;
                         int tileYindex = (int)y / map.TileHeight;
-                        tileCollisionChecks.Add(new Rectangle(x - x%map.TileWidth, y - y%map.TileHeight, map.TileWidth, map.TileHeight));
-
-                        Tileset.TilePropertyList tileProperties = new Tileset.TilePropertyList();
-
-
-                        //get tile starting id and then add the tile id for that tile
-                        int tile = map.Layers["meta " + obj.Layer].GetTile(tileXindex, tileYindex);
-                        tileProperties = map.Tilesets["meta"].GetTileProperties(tile);
-
-                        if (tile > 0)
+                        if (tileXindex > 0 && tileYindex > 0 && tileXindex < map.Width && tileYindex < map.Height)
                         {
-                            if (tileProperties.ContainsKey("Collision"))
+                            Rectangle currentTile = new Rectangle(x - x % map.TileWidth, y - y % map.TileHeight, map.TileWidth, map.TileHeight);
+                            //tileCollisionChecks.Add(currentTile);
+
+                            Tileset.TilePropertyList tileProperties = new Tileset.TilePropertyList();
+
+
+                            //get tile starting id and then add the tile id for that tile
+                            int tile = map.Layers["meta " + obj.Layer].GetTile(tileXindex, tileYindex);
+                            tileProperties = map.Tilesets["meta"].GetTileProperties(tile);
+
+                            if (tile > 0)
                             {
-                                return true;
+                                
+                                if (tileProperties.ContainsKey("TransDown"))
+                                {
+                                    PreviousLevel = obj.Layer;
+                                    obj.Layer--;
+                                    Trans = true;
+                                }
+                                else if (tileProperties.ContainsKey("TransUp"))
+                                {
+                                    PreviousLevel = obj.Layer;
+                                    obj.Layer++;
+                                    Trans = true;
+                                }
+                                if (tileProperties.ContainsKey("Collision"))
+                                {
+                                    if (obj.rotatedRect.Intersects(currentTile))
+                                        return true;
+                                }
                             }
-                            //else if (tileProperties.ContainsKey("TransDown"))
-                            //{
-                            //    obj.Layer--;
-                            //}
-                            //else if (tileProperties.ContainsKey("TransUp"))
-                            //{
-                            //    obj.Layer++;
-                            //}
                         }
                     }
                 }
@@ -165,17 +333,21 @@ namespace Game
 
                         if (tile > 0)
                         {
-                            if (tileProperties.ContainsKey("Collision"))
+                            if (tileProperties.ContainsKey("TransDown"))
                             {
-                                return true;
-                            }
-                            else if (tileProperties.ContainsKey("TransDown"))
-                            {
+                                PreviousLevel = obj.Layer;
                                 obj.Layer--;
+                                Trans = true;
                             }
                             else if (tileProperties.ContainsKey("TransUp"))
                             {
+                                PreviousLevel = obj.Layer;
                                 obj.Layer++;
+                                Trans = true;
+                            }
+                            if (tileProperties.ContainsKey("Collision"))
+                            {
+                                return true;
                             }
                         }
                     }
@@ -188,7 +360,7 @@ namespace Game
 
 
 
-        public void Draw(SpriteBatch batch, Vector2 offset, Vector2 viewportPosition, float opacity, int width, int height)
+        public virtual void Draw(SpriteBatch batch, Vector2 offset, Vector2 viewportPosition, float opacity, int width, int height)
         {
 
             //batch.Draw(this.Texture, this.Position, Color.White);
@@ -207,7 +379,7 @@ namespace Game
         }
 
         
-        Vector2 rotate_vector(Vector2 orgin, float angle, Vector2 p)
+        public virtual Vector2 rotate_vector(Vector2 orgin, float angle, Vector2 p)
         {
             float s = (float)Math.Sin((double)angle);
             float c = (float)Math.Cos((double)angle);
@@ -229,6 +401,7 @@ namespace Game
 
             return p;
         }
+        public virtual void Draw(SpriteBatch batch) { }
 
         private void findOrgin()
         {

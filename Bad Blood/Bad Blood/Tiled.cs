@@ -843,36 +843,62 @@ namespace Squared.Tiled {
             return result;
         }
 
-        public void Draw (SpriteBatch batch, Rectangle rectangle, Vector2 viewportPosition, Game.Player obj) {
-            int level = -1;
-            for (; level < 3; level++)
+        public void Draw (SpriteBatch batch, Rectangle rectangle, Vector2 viewportPosition, List<Game.MultiMap<Game.GameObject>> WorldObjects) {
+        
+
+            //First we will need to iterate through the layers, drawing the bottom most layer first
+            //Prior to drawing, we need to find out which layer the player is on so we dont draw the higher layers on top of them. These 
+            //higher layers will not be drawn
+            bool underground = false;
+            for (int level = 0; level < 4; level++)
             {
                 foreach (Layer layers in Layers.Values)
                 {
-                    string layerNumber = layers.Name.Substring(layers.Name.Length - 2);
-                    if (layerNumber.Equals(" " + level) && obj.Layer > -1)
-                        layers.Draw(batch, Tilesets.Values, rectangle, viewportPosition, TileWidth, TileHeight);
-                    else if (layerNumber.Equals("-1") && obj.Layer == -1)
+                    int layerNumber = Convert.ToInt16(layers.Name.Substring(layers.Name.Length - 2));
+                    if (layerNumber.Equals(level) && WorldObjects.ElementAt(0)[Game.ObjectType.Player].Count.Equals(0))
                     {
                         layers.Draw(batch, Tilesets.Values, rectangle, viewportPosition, TileWidth, TileHeight);
-                        obj.Draw(batch, new Vector2(0, 0), viewportPosition, 100f, this.Width, this.Height);
-                       
+                     
+                        foreach (Game.ObjectType objectType in WorldObjects.ElementAt(level).Keys)
+                        {
+                            foreach (Game.GameObject gameObject in WorldObjects.ElementAt(level)[objectType])
+                            {
+                               
+                                gameObject.Draw(batch, new Vector2(0, 0), viewportPosition, 100f, gameObject.Width, gameObject.Height);
+                            }
+                        }
                     }
+
+                    else if (layerNumber.Equals(0) && WorldObjects.ElementAt(0)[Game.ObjectType.Player].Count > 0)
+                    {
+                        layers.Draw(batch, Tilesets.Values, rectangle, viewportPosition, TileWidth, TileHeight);
+                        foreach (Game.ObjectType objectType in WorldObjects.ElementAt(0).Keys)
+                        {
+                            foreach (Game.GameObject gameObject in WorldObjects.ElementAt(0)[objectType])
+                            {
+                                gameObject.Draw(batch, new Vector2(0, 0), viewportPosition, 100f, gameObject.Width, gameObject.Height);
+                               
+                            }
+                        }
+
+                    }
+                    //foreach (Layer layers in Layers.Values)
+                    //{
+                    //    string layerNumber = layers.Name.Substring(layers.Name.Length - 2);
+                    //    if (layerNumber.Equals(" " + level) && obj.Layer > -1)
+                    //        layers.Draw(batch, Tilesets.Values, rectangle, viewportPosition, TileWidth, TileHeight);
+                    //    else if (layerNumber.Equals("-1") && obj.Layer == -1)
+                    //    {
+                    //        layers.Draw(batch, Tilesets.Values, rectangle, viewportPosition, TileWidth, TileHeight);
+                    //        obj.Draw(batch, new Vector2(0, 0), viewportPosition, 100f, this.Width, this.Height);
+
+                    //    }
+                    //}
+                    //if (obj.Layer == level)
+                    //{
+                    //    obj.Draw(batch, new Vector2(0, 0), viewportPosition, 100f, this.Width, this.Height);
+                    //}
                 }
-                if (obj.Layer == level)
-                {
-                    obj.Draw(batch, new Vector2(0, 0), viewportPosition, 100f, this.Width, this.Height);
-                }
-                //foreach (var objectgroups in ObjectGroups.Values)
-                //{
-
-                //    if (!objectgroups.Objects.ContainsKey("player"))
-                //        objectgroups.Draw(this, batch, rectangle, viewportPosition);
-                   
-                       
-
-                //}
-
             }
             
         }

@@ -1,6 +1,7 @@
 Content\meta.xnb
 Content\RPG_Maker_VX_RTP_Tileset_by_telles0808.xnb
 Content\tree.xnb
+Content\Player\Player.xnb
 Content\tiles.xnb
 Content\Textures\gun_shot.xnb
 Content\Textures\zombie.xnb
@@ -49,7 +50,6 @@ Content\Particles\explosionSettings.xnb
 Content\Particles\powerupSettings.xnb
 Content\Particles\shieldSettings.xnb
 Content\Particles\SmokeSettings.xnb
-Content\Player\PlayerDeath.xnb
-Content\Player\Player.xnb
 Content\Player\PlayerSprite.xnb
+Content\Player\PlayerDeath.xnb
 Content\MapTest.tmx

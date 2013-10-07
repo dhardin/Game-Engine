@@ -35,15 +35,12 @@ namespace Game
 
             public Vector2 firePosition;
 
-            // State of the Projectile
-            public bool Active;
-
             // The amount of damage the projectile can inflict to an enemy
             public int Damage;
 
             private float rotationAngle;
 
-           
+            const float SIZE_MOD = 0.3f;
 
             private ProjectileType projectileType;
 
@@ -56,30 +53,13 @@ namespace Game
 
             #region Properties
 
-            // Get the width of the projectile ship
-            public int Width
-            {
-                get { return Texture.Width; }
-            }
 
-            // Get the height of the projectile ship
-            public int Height
-            {
-                get { return Texture.Height; }
-            }
 
             public ProjectileType ProjectileType
             {
                 get { return projectileType; }
             }
 
-            public Rectangle CollisionBounds
-            {
-                get
-                {
-                    return new Rectangle((int)Position.X, (int)Position.Y, Texture.Width, Texture.Height);
-                }
-            }
             #endregion
             public Projectile(Vector2 position, float angle, ProjectileType projectile, int currentLayer)
             {
@@ -87,8 +67,10 @@ namespace Game
                 Position = position;
                 Layer = currentLayer;
                  projectileType = projectile;
+                 Height = (int)(Texture.Height * SIZE_MOD);
+                 Width = (int)(Texture.Width * SIZE_MOD);
                 rotationAngle = angle;
-                
+                Orgin = new Vector2(Width / 2, Height / 2);
                 
                 //firePosition is the velocity of the projectile (i.e., the direction it's moving in)
                 firePosition.X = (float)Math.Cos(rotationAngle);
@@ -97,12 +79,12 @@ namespace Game
                 projectileMoveSpeed = 8.0f * MAX_PROJECTILE_SPEED_MULTIPLYER;
                 
                 //Initialize();
-                rotatedRect = new RotatedRectangle(CollisionBounds, rotationAngle);
+                rotatedRect = new RotatedRectangle(new Rectangle((int)position.X, (int)position.Y, Width, Height), rotationAngle);
                 //Initialize();
 
             }
 
-            public bool CollidesWith(Rectangle rectangle, ref Vector2 newPosition)
+            public override bool CollidesWith(Rectangle rectangle, ref Vector2 newPosition)
             {
                 Vector2 collisionDepth = RectangleExtensions.GetIntersectionDepth(CollisionBounds, rectangle);
 
@@ -118,7 +100,7 @@ namespace Game
 
             }
             #region Update and Draw
-            public void Update(ref Map map)
+            public override void Update(GameTime gameTime, ref Map map)
             {
                 
                 if (Active)
@@ -139,18 +121,57 @@ namespace Game
                     this.Position.X += (projectileMoveSpeed * firePosition.X);
                     this.Position.Y += (projectileMoveSpeed * firePosition.Y);
 
-                    rotatedRect.ChangePosition(new Vector2(Position.X - rotatedRect.Width / 2, Position.Y));
-
-                    //first ensure that the projectile is on the map
-                   
-
-                    
+                   //rotatedRect.ChangePosition(new Vector2(Position.X - rotatedRect.Width / 2, Position.Y));
+                    this.rotatedRect.ChangePosition(this.Position - this.Orgin / 2);                    
                 }
+            }
+            public override void Draw(SpriteBatch batch, Vector2 offset, Vector2 viewportPosition, float opacity, int width, int height)
+            {
 
+                //batch.Draw(this.Texture, this.Position, Color.White);
+               // batch.Draw(Texture, this.Position, null, Color.White, this.Rotation, this.Orgin, 1f, SpriteEffects.None, 0);
+
+
+                if (Active)
+                {
+
+                    batch.Draw(Texture, Position, null, Color.Gold, rotationAngle,
+                    new Vector2(Width / 2, Height / 2), SIZE_MOD, SpriteEffects.None, 0f);
+
+
+                    Primitives2D.DrawLine(batch, rotatedRect.UpperLeftCorner(), rotatedRect.UpperRightCorner(), Color.LightPink);
+                    Primitives2D.DrawLine(batch, rotatedRect.UpperRightCorner(), rotatedRect.LowerRightCorner(), Color.LightPink);
+                    Primitives2D.DrawLine(batch, rotatedRect.LowerRightCorner(), rotatedRect.LowerLeftCorner(), Color.LightPink);
+                    Primitives2D.DrawLine(batch, rotatedRect.LowerLeftCorner(), rotatedRect.UpperLeftCorner(), Color.LightPink);
+
+                    for (int i = 0; i < tileCollisionChecks.Count; i++)
+                    {
+
+
+                        Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Top), new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Top), Color.Red);
+                        Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Top), new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Bottom), Color.Red);
+                        Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Bottom), new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Bottom), Color.Red);
+                        Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Bottom), new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Top), Color.Red);
+                    }
+                }
+                //Primitives2D.DrawLine(batch, rotatedRect.UpperLeftCorner(), rotatedRect.UpperRightCorner(), Color.LightPink);
+                //Primitives2D.DrawLine(batch, rotatedRect.UpperRightCorner(), rotatedRect.LowerRightCorner(), Color.LightPink);
+                //Primitives2D.DrawLine(batch, rotatedRect.LowerRightCorner(), rotatedRect.LowerLeftCorner(), Color.LightPink);
+                //Primitives2D.DrawLine(batch, rotatedRect.LowerLeftCorner(), rotatedRect.UpperLeftCorner(), Color.LightPink);
+
+                //Primitives2D.DrawLine(batch, new Vector2(Rect.Left, Rect.Top), new Vector2(Rect.Right, Rect.Top), Color.LightBlue);
+                //Primitives2D.DrawLine(batch, new Vector2(Rect.Right, Rect.Top), new Vector2(Rect.Right, Rect.Bottom), Color.LightBlue);
+                //Primitives2D.DrawLine(batch, new Vector2(Rect.Right, Rect.Bottom), new Vector2(Rect.Left, Rect.Bottom), Color.LightBlue);
+                //Primitives2D.DrawLine(batch, new Vector2(Rect.Left, Rect.Bottom), new Vector2(Rect.Left, Rect.Top), Color.LightBlue);
+
+
+
+                //draw mouse crosshair
+                //Primitives2D.DrawLine(batch, this.Position, mousePosition, Color.Red, 0.6f);
 
             }
 
-            public void Draw(SpriteBatch batch)
+            public override void Draw(SpriteBatch batch)
             {
                 if (Active)
                 {
@@ -159,20 +180,20 @@ namespace Game
                     new Vector2(Width / 2, Height / 2), 1f, SpriteEffects.None, 0f);
 
 
-                    //Primitives2D.DrawLine(batch, rotatedRect.UpperLeftCorner(), rotatedRect.UpperRightCorner(), Color.LightPink);
-                    //Primitives2D.DrawLine(batch, rotatedRect.UpperRightCorner(), rotatedRect.LowerRightCorner(), Color.LightPink);
-                    //Primitives2D.DrawLine(batch, rotatedRect.LowerRightCorner(), rotatedRect.LowerLeftCorner(), Color.LightPink);
-                    //Primitives2D.DrawLine(batch, rotatedRect.LowerLeftCorner(), rotatedRect.UpperLeftCorner(), Color.LightPink);
+                    Primitives2D.DrawLine(batch, rotatedRect.UpperLeftCorner(), rotatedRect.UpperRightCorner(), Color.LightPink);
+                    Primitives2D.DrawLine(batch, rotatedRect.UpperRightCorner(), rotatedRect.LowerRightCorner(), Color.LightPink);
+                    Primitives2D.DrawLine(batch, rotatedRect.LowerRightCorner(), rotatedRect.LowerLeftCorner(), Color.LightPink);
+                    Primitives2D.DrawLine(batch, rotatedRect.LowerLeftCorner(), rotatedRect.UpperLeftCorner(), Color.LightPink);
 
-                    //for (int i = 0; i < tileCollisionChecks.Count; i++)
-                    //{
+                    for (int i = 0; i < tileCollisionChecks.Count; i++)
+                    {
 
 
-                    //    Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Top), new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Top), Color.Red);
-                    //    Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Top), new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Bottom), Color.Red);
-                    //    Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Bottom), new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Bottom), Color.Red);
-                    //    Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Bottom), new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Top), Color.Red);
-                    //}
+                        Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Top), new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Top), Color.Red);
+                        Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Top), new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Bottom), Color.Red);
+                        Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Bottom), new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Bottom), Color.Red);
+                        Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Bottom), new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Top), Color.Red);
+                    }
                 }
             }
             #endregion
