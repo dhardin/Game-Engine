@@ -16,7 +16,6 @@ using System.IO;
 using System.Collections;
 using Game;
 
-
 namespace Game {
     struct WorldObjectHolder
     {
@@ -92,7 +91,7 @@ namespace Game {
         List<Polygon> collisionTiles = new List<Polygon>();
         List<WorldObjectHolder> WorldObjectManager = new List<WorldObjectHolder>();
         Vector2 offset = new Vector2(0, 0);
-        
+      
         Player player;
         Texture2D pixel;
         
@@ -146,6 +145,7 @@ namespace Game {
 
         protected override void Update (GameTime gameTime) {
             
+            
             for (int i = 0; i < WorldObjects.Count; i++)
             {
                 foreach (ObjectType objectType in WorldObjects.ElementAt(i).Keys)
@@ -158,7 +158,7 @@ namespace Game {
                         {
                                 
                             case ObjectType.Player:
-                                gameObject.HandleInput(gameTime, GraphicsDevice.Viewport, ref map, viewportPosition - gameObject.Offset);
+                                gameObject.HandleInput(gameTime, GraphicsDevice.Viewport, ref map, viewportPosition);
                                 if (gameObject.Layer != i)
                                 {
                                     worldObjectHolder.gameObject = gameObject;
@@ -168,7 +168,12 @@ namespace Game {
                                     WorldObjectManager.Add(worldObjectHolder);
                                 }
                                 if (gameObject.pState.CurrentState.Equals(ProcessState.Shooting))
-                                {    
+                                {
+                                    //SCREEN SHAKE
+                                    Random rand = new Random();
+                                    offset.X = rand.Next(-10, 10);
+                                    offset.Y = rand.Next(-10, 10);
+
                                     //in order to place our projectile initially, we want to think of our object as a unit cirle.
                                     //the projectile placement is relative to the player's position, so we'll add the position.
                                     //after, we need to "center" the projectile in the center of the player (i.e., orgin) so we'll add that relative to the
@@ -178,14 +183,19 @@ namespace Game {
                                     //of the gameobject. 
                                     //
                                     //Later on, we'll have to take into consideration different weapon type's physical length so the projectile is placed correctly.
-                                    float xPos = gameObject.Position.X  + gameObject.GunBarrelPosition.X + (float)((gameObject.Width) * Math.Cos(gameObject.Rotation));
+                                    float xPos = gameObject.Position.X + gameObject.GunBarrelPosition.X + (float)((gameObject.Width) * Math.Cos(gameObject.Rotation));
                                     float yPos = gameObject.Position.Y + gameObject.GunBarrelPosition.Y + (float)((gameObject.Width) * Math.Sin(gameObject.Rotation));
-                                  
-                                    worldObjectHolder.gameObject = new Projectile(new Vector2(xPos,yPos), gameObject.Rotation, ProjectileType.Standard, gameObject.Layer);
+
+                                    worldObjectHolder.gameObject = new Projectile(new Vector2(xPos, yPos), gameObject.Rotation, ProjectileType.Standard, gameObject.Layer);
                                     worldObjectHolder.fromLevel = gameObject.Layer;
                                     worldObjectHolder.toLevel = gameObject.Layer;
                                     worldObjectHolder.objectType = ObjectType.Projectile;
                                     WorldObjectManager.Add(worldObjectHolder);
+                                }
+                                else
+                                {
+                                    offset.X = 0; 
+                                    offset.Y = 0;
                                 }
                                  
 
@@ -232,7 +242,7 @@ namespace Game {
                                     WorldObjectManager.Add(worldObjectHolder);
                                 }
                                 else
-                                    gameObject.Update(gameTime, ref map, viewportPosition - gameObject.Offset);
+                                    gameObject.Update(gameTime, ref map, viewportPosition);
                                 break;
                             default:
                                 //gameObject.Update(gameTime);
@@ -282,7 +292,7 @@ namespace Game {
             base.Draw(gameTime);
 
             spriteBatch.Begin();
-            map.Draw(spriteBatch, new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height), viewportPosition, WorldObjects);
+            map.Draw(spriteBatch, new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height), viewportPosition + offset, WorldObjects);
 
             //count the total projectiles in the world
             int numProjectiles = 0;
