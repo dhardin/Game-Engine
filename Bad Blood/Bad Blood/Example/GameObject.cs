@@ -193,7 +193,7 @@ namespace Game
         public List<Rectangle> tileCollisionChecks = new List<Rectangle>();
         public bool Active { get; set; }
         public int SizeMod { get; set; }
-      
+        public Vector2 Offset;
         public int PreviousLevel { get; private set; }
 
         public virtual Vector2 GunBarrelPosition { get; set; }
@@ -236,7 +236,7 @@ namespace Game
          
         }
         public virtual void Rotate() { }
-        public virtual void HandleInput(GameTime gameTime,Viewport v, ref Map map)
+        public virtual void HandleInput(GameTime gameTime,Viewport v, ref Map map, Vector2 viewportPosition)
         { }
         public virtual void Update(GameTime gameTime)
         {
@@ -246,7 +246,7 @@ namespace Game
            Rect.Location = new Point((int)(this.Position.X), (int)(this.Position.Y));
         }
 
-        public virtual void Update(GameTime gameTime, ref Map map)
+        public virtual void Update(GameTime gameTime, ref Map map, Vector2 viewportPosition)
         {
         }
         public virtual bool willCollideLevel(ref Map map, GameObject obj, Vector2 velocity, bool rotatedCollision)

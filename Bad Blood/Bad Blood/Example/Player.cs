@@ -186,17 +186,17 @@ namespace Game
             {
 
                 //batch.Draw(this.Texture, this.Position, Color.White);
-                batch.Draw(Texture, this.Position + Orgin * SIZE_MOD, null, Color.White, this.Rotation, this.Orgin, SIZE_MOD, SpriteEffects.None, 0);
+                batch.Draw(Texture, this.Position + Orgin * SIZE_MOD - viewportPosition + Offset, null, Color.White, this.Rotation, this.Orgin, SIZE_MOD, SpriteEffects.None, 0);
 
-                Primitives2D.DrawLine(batch, rotatedRect.UpperLeftCorner(), rotatedRect.UpperRightCorner(), Color.LightPink);
-                Primitives2D.DrawLine(batch, rotatedRect.UpperRightCorner(), rotatedRect.LowerRightCorner(), Color.LightPink);
-                Primitives2D.DrawLine(batch, rotatedRect.LowerRightCorner(), rotatedRect.LowerLeftCorner(), Color.LightPink);
-                Primitives2D.DrawLine(batch, rotatedRect.LowerLeftCorner(), rotatedRect.UpperLeftCorner(), Color.LightPink);
+                Primitives2D.DrawLine(batch, rotatedRect.UpperLeftCorner() - viewportPosition + Offset, rotatedRect.UpperRightCorner() - viewportPosition + Offset, Color.LightPink);
+                Primitives2D.DrawLine(batch, rotatedRect.UpperRightCorner() - viewportPosition + Offset, rotatedRect.LowerRightCorner() - viewportPosition + Offset, Color.LightPink);
+                Primitives2D.DrawLine(batch, rotatedRect.LowerRightCorner() - viewportPosition + Offset, rotatedRect.LowerLeftCorner() - viewportPosition + Offset, Color.LightPink);
+                Primitives2D.DrawLine(batch, rotatedRect.LowerLeftCorner() - viewportPosition + Offset, rotatedRect.UpperLeftCorner() - viewportPosition + Offset, Color.LightPink);
 
-                Primitives2D.DrawLine(batch, new Vector2(Rect.Left, Rect.Top), new Vector2(Rect.Right, Rect.Top), Color.LightBlue);
-                Primitives2D.DrawLine(batch, new Vector2(Rect.Right, Rect.Top), new Vector2(Rect.Right, Rect.Bottom), Color.LightBlue);
-                Primitives2D.DrawLine(batch, new Vector2(Rect.Right, Rect.Bottom), new Vector2(Rect.Left, Rect.Bottom), Color.LightBlue);
-                Primitives2D.DrawLine(batch, new Vector2(Rect.Left, Rect.Bottom), new Vector2(Rect.Left, Rect.Top), Color.LightBlue);
+                Primitives2D.DrawLine(batch, new Vector2(Rect.Left, Rect.Top) - viewportPosition + Offset, new Vector2(Rect.Right, Rect.Top) - viewportPosition + Offset, Color.LightBlue);
+                Primitives2D.DrawLine(batch, new Vector2(Rect.Right, Rect.Top) - viewportPosition + Offset, new Vector2(Rect.Right, Rect.Bottom) - viewportPosition + Offset, Color.LightBlue);
+                Primitives2D.DrawLine(batch, new Vector2(Rect.Right, Rect.Bottom) - viewportPosition + Offset, new Vector2(Rect.Left, Rect.Bottom) - viewportPosition + Offset, Color.LightBlue);
+                Primitives2D.DrawLine(batch, new Vector2(Rect.Left, Rect.Bottom) - viewportPosition + Offset, new Vector2(Rect.Left, Rect.Top) - viewportPosition + Offset, Color.LightBlue);
 
 
                 //Primitives2D.DrawCircle(batch, new Vector2(rotatedRect.X, rotatedRect.Y), 2f, 100, Color.White);
@@ -204,13 +204,13 @@ namespace Game
 
                 foreach (Rectangle rect in tileCollisionChecks)
                 {
-                    Primitives2D.DrawLine(batch, new Vector2(rect.Left, rect.Top), new Vector2(rect.Right, rect.Top), Color.Red);
-                    Primitives2D.DrawLine(batch, new Vector2(rect.Right, rect.Top), new Vector2(rect.Right, rect.Bottom), Color.Red);
-                    Primitives2D.DrawLine(batch, new Vector2(rect.Right, rect.Bottom), new Vector2(rect.Left, rect.Bottom), Color.Red);
-                    Primitives2D.DrawLine(batch, new Vector2(rect.Left, rect.Bottom), new Vector2(rect.Left, rect.Top), Color.Red);
+                    Primitives2D.DrawLine(batch, new Vector2(rect.Left, rect.Top) - viewportPosition + Offset, new Vector2(rect.Right, rect.Top) - viewportPosition + Offset, Color.Red);
+                    Primitives2D.DrawLine(batch, new Vector2(rect.Right, rect.Top) - viewportPosition + Offset, new Vector2(rect.Right, rect.Bottom) - viewportPosition + Offset, Color.Red);
+                    Primitives2D.DrawLine(batch, new Vector2(rect.Right, rect.Bottom) - viewportPosition + Offset, new Vector2(rect.Left, rect.Bottom) - viewportPosition + Offset, Color.Red);
+                    Primitives2D.DrawLine(batch, new Vector2(rect.Left, rect.Bottom) - viewportPosition + Offset, new Vector2(rect.Left, rect.Top) - viewportPosition + Offset, Color.Red);
                 }
                 //draw mouse crosshair
-                Primitives2D.DrawLine(batch, this.Position + GunBarrelPosition + new Vector2(Width * 0.5f * (float)Math.Cos(Rotation), Width * 0.5f * (float)Math.Sin(Rotation)), mousePosition , Color.Red, 0.6f);
+                Primitives2D.DrawLine(batch, this.Position + GunBarrelPosition + new Vector2(Width * 0.5f * (float)Math.Cos(Rotation), Width * 0.5f * (float)Math.Sin(Rotation)) - viewportPosition + Offset, mousePosition, Color.Red, 0.6f);
               
             }
 
@@ -230,7 +230,7 @@ namespace Game
                 int x = 0;
 
             }
-            public override void HandleInput(GameTime gameTime, Viewport viewport, ref Map map/*, InputState input*/)
+            public override void HandleInput(GameTime gameTime, Viewport viewport, ref Map map, Vector2 viewportPosition)
             {
                 GamePadState gamePadState = GamePad.GetState(playerIndex);
                 KeyboardState keyboardState = Keyboard.GetState();//input.CurrentKeyboardStates[0];
@@ -341,8 +341,8 @@ namespace Game
                         }
 
                         // Make sure that the player does not go out of bounds
-                        newPosition.X = MathHelper.Clamp(newPosition.X, this.Width * 0.5f/*_sprite.SpriteSheet.SourceRectangle(_sprite.CurrentFrame).Width*/ * 0.5f, /*ScreenManager.Instance.GraphicsDevice.Viewport.Width*/viewport.Width - this.Width * 0.5f);//(_sprite.SpriteSheet.SourceRectangle(_sprite.CurrentFrame).Width * 0.5f));
-                        newPosition.Y = MathHelper.Clamp(newPosition.Y, this.Height /* _sprite.SpriteSheet.SourceRectangle(_sprite.CurrentFrame).Height*/, /*ScreenManager.Instance.GraphicsDevice.Viewport.Height*/viewport.Height);
+                        newPosition.X = MathHelper.Clamp(newPosition.X, Width, map.Width * map.TileWidth - 2*Width);
+                        newPosition.Y = MathHelper.Clamp(newPosition.Y, Height , map.Height * map.TileHeight -  2* Height);
 
                         if (moved)
                         {
@@ -405,10 +405,10 @@ namespace Game
 
                     break;
                 };
-                this.Update(gameTime, ref map);
+                this.Update(gameTime, ref map, viewportPosition);
 
             }
-            public override void Update(GameTime gameTime, ref Map map)
+            public override void Update(GameTime gameTime, ref Map map, Vector2 viewportPosition)
             {
                 switch (this.pState.CurrentState)
                 {

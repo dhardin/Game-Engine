@@ -100,7 +100,7 @@ namespace Game
 
             }
             #region Update and Draw
-            public override void Update(GameTime gameTime, ref Map map)
+            public override void Update(GameTime gameTime, ref Map map, Vector2 viewportPosition)
             {
                 
                 if (Active)
@@ -140,7 +140,7 @@ namespace Game
                 {
                     //batch.Draw(Texture, this.Position, null, Color.White, this.Rotation, this.Orgin, SIZE_MOD, SpriteEffects.None, 0);
 
-                    batch.Draw(Texture, Position + Orgin * SIZE_MOD, null, Color.White, this.Rotation, Orgin, SIZE_MOD, SpriteEffects.None, 0);
+                    batch.Draw(Texture, Position + Orgin * SIZE_MOD - viewportPosition + Offset, null, Color.White, this.Rotation, Orgin, SIZE_MOD, SpriteEffects.None, 0);
 
 
                     //int lowestPoint = (int)(Math.Min((int)Math.Min(rotatedRect.UpperLeftCorner().Y, rotatedRect.UpperRightCorner().Y), (int)Math.Min(rotatedRect.LowerLeftCorner().Y, rotatedRect.LowerRightCorner().Y)));
@@ -168,10 +168,10 @@ namespace Game
                     {
 
 
-                        Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Top), new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Top), Color.Red);
-                        Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Top), new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Bottom), Color.Red);
-                        Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Bottom), new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Bottom), Color.Red);
-                        Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Bottom), new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Top), Color.Red);
+                        Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Top) - viewportPosition + Offset, new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Top) - viewportPosition + Offset, Color.Red);
+                        Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Top) - viewportPosition + Offset, new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Bottom) - viewportPosition + Offset, Color.Red);
+                        Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Bottom) - viewportPosition + Offset, new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Bottom) - viewportPosition + Offset, Color.Red);
+                        Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Bottom) - viewportPosition + Offset, new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Top) - viewportPosition + Offset, Color.Red);
                     }
 
                 }

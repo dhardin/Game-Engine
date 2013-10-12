@@ -91,6 +91,7 @@ namespace Game {
         bool collision;
         List<Polygon> collisionTiles = new List<Polygon>();
         List<WorldObjectHolder> WorldObjectManager = new List<WorldObjectHolder>();
+        Vector2 offset = new Vector2(0, 0);
         
         Player player;
         Texture2D pixel;
@@ -157,7 +158,7 @@ namespace Game {
                         {
                                 
                             case ObjectType.Player:
-                                gameObject.HandleInput(gameTime, GraphicsDevice.Viewport, ref map);
+                                gameObject.HandleInput(gameTime, GraphicsDevice.Viewport, ref map, viewportPosition - gameObject.Offset);
                                 if (gameObject.Layer != i)
                                 {
                                     worldObjectHolder.gameObject = gameObject;
@@ -186,7 +187,31 @@ namespace Game {
                                     worldObjectHolder.objectType = ObjectType.Projectile;
                                     WorldObjectManager.Add(worldObjectHolder);
                                 }
-                                    //WorldObjects.ElementAt(i).Add(ObjectType.Projectile, new Projectile(player.Position, player.Rotation, ProjectileType.Standard, player.Layer));
+                                 
+
+                                //now we will need to update our drawing offset for the world. In order to do this, we must do the following...
+                                //If player's position is greater than the 1/2 of the viewport width and the player's position is less than the
+                                //(map width * tile width - viewport width / 2)
+                                //      offset += player's position - viewport width / 2
+                                //we'll do the same for the height as well
+                                if (gameObject.Position.X >= (viewportRect.Width * 0.5f) && gameObject.Position.X <= (map.Width * map.TileWidth - viewportRect.Width * 0.5f))
+                                {
+                                    viewportPosition.X = gameObject.Position.X - viewportRect.Width * 0.5f;
+
+                                }
+                                //else if (gameObject.Position.X > (viewportRect.Width * 0.5f) && gameObject.Position.X > (map.Width * map.TileWidth))
+                                //{
+                                //    gameObject.Offset.X = viewportPosition.X;
+                                //    //viewportPosition.X = viewportRect.Width - gameObject.Position.X;
+                                //}
+                                if (gameObject.Position.Y >= (viewportRect.Height * 0.5f) && gameObject.Position.Y <= (map.Height * map.TileHeight - viewportRect.Height * 0.5f))
+                                {
+                                    viewportPosition.Y = gameObject.Position.Y - viewportRect.Height * 0.5f;
+                                }
+                                //else if (gameObject.Position.Y > (viewportRect.Height * 0.5f) && gameObject.Position.Y > (map.Height * map.TileHeight))
+                                //{
+                                //    gameObject.Offset.Y = viewportPosition.Y;
+                                //}
 
                                 break;
                             case ObjectType.Projectile:
@@ -207,7 +232,7 @@ namespace Game {
                                     WorldObjectManager.Add(worldObjectHolder);
                                 }
                                 else
-                                    gameObject.Update(gameTime, ref map);
+                                    gameObject.Update(gameTime, ref map, viewportPosition - gameObject.Offset);
                                 break;
                             default:
                                 //gameObject.Update(gameTime);
