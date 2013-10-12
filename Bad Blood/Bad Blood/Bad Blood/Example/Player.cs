@@ -26,18 +26,6 @@ namespace Game
             #region Fields
         #region StateMachine
   
-
-    
-        /*
-         * Example:
-            Process p = new Process();
-            Console.WriteLine("Current State = " + p.CurrentState);
-            Console.WriteLine("Command.Begin: Current State = " + p.MoveNext(Command.Begin));
-            Console.WriteLine("Command.Pause: Current State = " + p.MoveNext(Command.Pause));
-            Console.WriteLine("Command.End: Current State = " + p.MoveNext(Command.End));
-            Console.WriteLine("Command.Exit: Current State = " + p.MoveNext(Command.Exit));
-            Console.ReadLine();
-         */
         #endregion
         private const float SPEED = 3.0f;
        
@@ -45,7 +33,6 @@ namespace Game
             private const float FullSpeed = 10.0f;
             private const float VelocityMaximum = 10.0f;
             private const float DragPerSecond = 0.9f;
-            private float Rotation;
             private Vector2 mousePosition;
             private const float SIZE_MOD = 0.4f;
            
@@ -60,8 +47,8 @@ namespace Game
             private int nukeCount;
             public const int MAX_NUKE_COUNT = 2;
             private const float MAX_NUKE_COOLDOWN = 2;
-         
 
+            
             private int score;
             private const int MAX_SCORE = int.MaxValue;
 
@@ -89,7 +76,7 @@ namespace Game
             private bool nukeFired = false;
             private bool shieldUsed = false;
 
-
+            public override Vector2 GunBarrelPosition { get; set; }
             //public delegate void ChangedEventHandler(object sender, EventArgs e);
 
 
@@ -175,14 +162,22 @@ namespace Game
                 playerIndex = pIndex;
                 Position = pos;
                 pState = new Process();
-                rotatedCollisionBox = new RotatedRectangle(CollisionBounds, Rotation);
+                rotatedCollisionBox = new RotatedRectangle(Rect, Rotation);
             }
-            public Player(PlayerIndex pIndex)
+            public Player(PlayerIndex pIndex, Vector2 pos, float rotation, int layer)
             {
                 playerIndex = pIndex;
                 pState = new Process();
-                rotatedCollisionBox = new RotatedRectangle(CollisionBounds, Rotation);
+                Position = pos;
+                Layer = layer;
+                Rotation = rotation;
+                Height = (int)(Texture.Height * SIZE_MOD);
+                Width = (int)(Texture.Width * SIZE_MOD);
+                Orgin = new Vector2(Texture.Width * 0.5f, Texture.Height * 0.5f);
+                Rect = new Rectangle((int)Position.X, (int)Position.Y, Width, Height);
 
+                this.rotatedRect = new RotatedRectangle(Rect, Rotation);
+                GunBarrelPosition = Orgin* SIZE_MOD;
             }
            
 
@@ -191,22 +186,31 @@ namespace Game
             {
 
                 //batch.Draw(this.Texture, this.Position, Color.White);
-                batch.Draw(Texture, this.Position, null, Color.White, this.Rotation, this.Orgin, SIZE_MOD, SpriteEffects.None, 0);
+                batch.Draw(Texture, this.Position + Orgin * SIZE_MOD, null, Color.White, this.Rotation, this.Orgin, SIZE_MOD, SpriteEffects.None, 0);
 
-                //Primitives2D.DrawLine(batch, rotatedRect.UpperLeftCorner(), rotatedRect.UpperRightCorner(), Color.LightPink);
-                //Primitives2D.DrawLine(batch, rotatedRect.UpperRightCorner(), rotatedRect.LowerRightCorner(), Color.LightPink);
-                //Primitives2D.DrawLine(batch, rotatedRect.LowerRightCorner(), rotatedRect.LowerLeftCorner(), Color.LightPink);
-                //Primitives2D.DrawLine(batch, rotatedRect.LowerLeftCorner(), rotatedRect.UpperLeftCorner(), Color.LightPink);
+                Primitives2D.DrawLine(batch, rotatedRect.UpperLeftCorner(), rotatedRect.UpperRightCorner(), Color.LightPink);
+                Primitives2D.DrawLine(batch, rotatedRect.UpperRightCorner(), rotatedRect.LowerRightCorner(), Color.LightPink);
+                Primitives2D.DrawLine(batch, rotatedRect.LowerRightCorner(), rotatedRect.LowerLeftCorner(), Color.LightPink);
+                Primitives2D.DrawLine(batch, rotatedRect.LowerLeftCorner(), rotatedRect.UpperLeftCorner(), Color.LightPink);
 
-                //Primitives2D.DrawLine(batch, new Vector2(Rect.Left, Rect.Top), new Vector2(Rect.Right, Rect.Top), Color.LightBlue);
-                //Primitives2D.DrawLine(batch, new Vector2(Rect.Right, Rect.Top), new Vector2(Rect.Right, Rect.Bottom), Color.LightBlue);
-                //Primitives2D.DrawLine(batch, new Vector2(Rect.Right, Rect.Bottom), new Vector2(Rect.Left, Rect.Bottom), Color.LightBlue);
-                //Primitives2D.DrawLine(batch, new Vector2(Rect.Left, Rect.Bottom), new Vector2(Rect.Left, Rect.Top), Color.LightBlue);
+                Primitives2D.DrawLine(batch, new Vector2(Rect.Left, Rect.Top), new Vector2(Rect.Right, Rect.Top), Color.LightBlue);
+                Primitives2D.DrawLine(batch, new Vector2(Rect.Right, Rect.Top), new Vector2(Rect.Right, Rect.Bottom), Color.LightBlue);
+                Primitives2D.DrawLine(batch, new Vector2(Rect.Right, Rect.Bottom), new Vector2(Rect.Left, Rect.Bottom), Color.LightBlue);
+                Primitives2D.DrawLine(batch, new Vector2(Rect.Left, Rect.Bottom), new Vector2(Rect.Left, Rect.Top), Color.LightBlue);
 
 
-                
+                //Primitives2D.DrawCircle(batch, new Vector2(rotatedRect.X, rotatedRect.Y), 2f, 100, Color.White);
+                //Primitives2D.DrawCircle(batch, Position + Orgin * SIZE_MOD, 2f, 100, Color.Red);
+
+                foreach (Rectangle rect in tileCollisionChecks)
+                {
+                    Primitives2D.DrawLine(batch, new Vector2(rect.Left, rect.Top), new Vector2(rect.Right, rect.Top), Color.Red);
+                    Primitives2D.DrawLine(batch, new Vector2(rect.Right, rect.Top), new Vector2(rect.Right, rect.Bottom), Color.Red);
+                    Primitives2D.DrawLine(batch, new Vector2(rect.Right, rect.Bottom), new Vector2(rect.Left, rect.Bottom), Color.Red);
+                    Primitives2D.DrawLine(batch, new Vector2(rect.Left, rect.Bottom), new Vector2(rect.Left, rect.Top), Color.Red);
+                }
                 //draw mouse crosshair
-                Primitives2D.DrawLine(batch, this.Position, mousePosition , Color.Red, 0.6f);
+                Primitives2D.DrawLine(batch, this.Position + GunBarrelPosition + new Vector2(Width * 0.5f * (float)Math.Cos(Rotation), Width * 0.5f * (float)Math.Sin(Rotation)), mousePosition , Color.Red, 0.6f);
               
             }
 
@@ -219,10 +223,11 @@ namespace Game
                 Vector2 direction = mousePosition - this.Position;
                 direction.Normalize();
 
-                this.Rotation = (float)Math.Atan2(
+                Rotation = (float)Math.Atan2(
                               (double)direction.Y,
                               (double)direction.X);
-
+                float tempDeg = (float)(Rotation * 180 / Math.PI);
+                int x = 0;
 
             }
             public override void HandleInput(GameTime gameTime, Viewport viewport, ref Map map/*, InputState input*/)
@@ -304,7 +309,7 @@ namespace Game
                         }
 
                         // Use the Keyboard / Dpad
-                        Vector2 mod = new Vector2(1, 1);
+                        Vector2 mod = new Vector2(0, 0);
                         bool moved = false;
                         if (keyboardState.IsKeyDown(Keys.A) || keyboardState.IsKeyDown(Keys.Left) ||
                         gamePadState.DPad.Left == ButtonState.Pressed)
@@ -428,9 +433,9 @@ namespace Game
                 };
                
                 //this.Rotate();
-                this.rotatedRect.ChangePosition(this.Position - this.Orgin / 2);
+                this.rotatedRect.ChangePosition(this.Position);
                 this.rotatedRect.Rotation = this.Rotation;
-                this.Rect.Location = new Point((int)(this.Position.X - this.Orgin.X / 2), (int)(this.Position.Y - this.Orgin.Y / 2));
+                this.Rect.Location = new Point((int)(this.Position.X), (int)(this.Position.Y));
             }
             /// <summary>
             /// Add projectile fired by the player to the game
@@ -443,19 +448,7 @@ namespace Game
             {
 
                 return WeaponType.Auto;
-            }
-
-            public void UpdateFireRate()
-            {
-
-                //for (int i = 0; i < powerUps.Count; i++)
-                //{
-                //    if (powerUps[i].Type.Equals(PowerUpType.Fast) || powerUps[i].Type.Equals(PowerUpType.Heavy) || powerUps[i].Type.Equals(PowerUpType.Sonic) || powerUps[i].Type.Equals(PowerUpType.None))
-                //        FireCooldownTime = TimeSpan.FromSeconds(powerUps[i].RateOfFire);
-                //}
-            }
-
-            
+            }            
         }
     }
 

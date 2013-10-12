@@ -173,7 +173,7 @@ namespace Game
     public class GameObject
     {
         public Process pState { get; set; }
-        public float Rotation;
+        public float Rotation { get; set; }
         public Vector2 Orgin;
         public int Layer { get; set; }
         public int Height;
@@ -192,9 +192,11 @@ namespace Game
         public RotatedRectangle rotatedRect;
         public List<Rectangle> tileCollisionChecks = new List<Rectangle>();
         public bool Active { get; set; }
-
-        public bool Trans { get;  set;}
+        public int SizeMod { get; set; }
+      
         public int PreviousLevel { get; private set; }
+
+        public virtual Vector2 GunBarrelPosition { get; set; }
 
         public Rectangle CollisionBounds
         {
@@ -229,15 +231,8 @@ namespace Game
         public virtual void Initialize(Vector2 position, float rotation, int layer)
         {
 
-            
-            Position = position;
-            Layer = layer;
-            Height = (int)(Math.Min(Texture.Height,Texture.Width) * SIZE_MOD);
-            Width = (int)(Math.Min(Texture.Height, Texture.Width) * SIZE_MOD);
-            Orgin = new Vector2(Texture.Width * 0.26f, Texture.Height / 2);
-            Rect = new Rectangle((int)Position.X, (int)Position.Y, Width, Height);  
-            
-            this.rotatedRect = new RotatedRectangle(Rect, rotation);
+          
+          
          
         }
         public virtual void Rotate() { }
@@ -246,9 +241,9 @@ namespace Game
         public virtual void Update(GameTime gameTime)
         {
             //this.Rotate();
-            rotatedRect.ChangePosition(this.Position - this.Orgin/2);
+            rotatedRect.ChangePosition(this.Position);
            rotatedRect.Rotation = this.Rotation;
-            Rect.Location = new Point((int)(this.Position.X - this.Orgin.X/2), (int)(this.Position.Y - this.Orgin.Y/2));    
+           Rect.Location = new Point((int)(this.Position.X), (int)(this.Position.Y));
         }
 
         public virtual void Update(GameTime gameTime, ref Map map)
@@ -256,56 +251,63 @@ namespace Game
         }
         public virtual bool willCollideLevel(ref Map map, GameObject obj, Vector2 velocity, bool rotatedCollision)
         {
+            tileCollisionChecks.Clear();
 
-            
 
             if (rotatedCollision)
             {
-
-                int lowestPoint = (int)(Math.Min((int)Math.Min(obj.rotatedRect.UpperLeftCorner().Y, obj.rotatedRect.UpperRightCorner().Y), (int)Math.Min(obj.rotatedRect.LowerLeftCorner().Y, obj.rotatedRect.LowerRightCorner().Y)));
-                int highestPoint = (int)(Math.Max((int)Math.Max(obj.rotatedRect.UpperLeftCorner().Y, obj.rotatedRect.UpperRightCorner().Y), (int)Math.Max(obj.rotatedRect.LowerLeftCorner().Y, obj.rotatedRect.LowerRightCorner().Y)));
-                int leftMostPoint = (int)(Math.Min((int)Math.Min(obj.rotatedRect.UpperLeftCorner().X, obj.rotatedRect.UpperRightCorner().X), (int)Math.Min(obj.rotatedRect.LowerLeftCorner().X, obj.rotatedRect.LowerRightCorner().X)));
-                int rightMostPoint = (int)(Math.Max((int)Math.Max(obj.rotatedRect.UpperLeftCorner().X, obj.rotatedRect.UpperRightCorner().X), (int)Math.Max(obj.rotatedRect.LowerLeftCorner().X, obj.rotatedRect.LowerRightCorner().X)));
-
-                
-                for (int y = lowestPoint; y < highestPoint; y += map.TileHeight)
+                //to prevent the bullet through paper effect, we'll have to subtract our velocity from our initial position and use that for our starting point and loop until we hit our initial point.
+                //maybe just do fractions of velocity (i.e., * 0.5
+                float i = 0f;
+                for (; i < 1; i += 0.1f)
                 {
+                    Vector2 tempVelocity = velocity * i;
+                    int lowestPoint = (int)(Math.Min((int)Math.Min(obj.rotatedRect.UpperLeftCorner().Y - tempVelocity.Y, obj.rotatedRect.UpperRightCorner().Y - tempVelocity.Y), (int)Math.Min(obj.rotatedRect.LowerLeftCorner().Y - tempVelocity.Y, obj.rotatedRect.LowerRightCorner().Y - tempVelocity.Y)));
+                    int highestPoint = (int)(Math.Max((int)Math.Max(obj.rotatedRect.UpperLeftCorner().Y - tempVelocity.Y, obj.rotatedRect.UpperRightCorner().Y - tempVelocity.Y), (int)Math.Max(obj.rotatedRect.LowerLeftCorner().Y - tempVelocity.Y, obj.rotatedRect.LowerRightCorner().Y - tempVelocity.Y)));
+                    int leftMostPoint = (int)(Math.Min((int)Math.Min(obj.rotatedRect.UpperLeftCorner().X - tempVelocity.X, obj.rotatedRect.UpperRightCorner().X - tempVelocity.X), (int)Math.Min(obj.rotatedRect.LowerLeftCorner().X - tempVelocity.X, obj.rotatedRect.LowerRightCorner().X - tempVelocity.X)));
+                    int rightMostPoint = (int)(Math.Max((int)Math.Max(obj.rotatedRect.UpperLeftCorner().X - tempVelocity.X, obj.rotatedRect.UpperRightCorner().X - tempVelocity.X), (int)Math.Max(obj.rotatedRect.LowerLeftCorner().X - tempVelocity.X, obj.rotatedRect.LowerRightCorner().X - tempVelocity.X)));
+                    //Vector2 objAfterMove = obj.Position + rotatedRect.Origin + velocity;
 
-                    for (int x = leftMostPoint; x < rightMostPoint; x+= map.TileWidth)
+                    for (int y = lowestPoint; y < highestPoint + map.TileHeight; y += map.TileHeight)
                     {
-                        int tileXindex = (int)x / map.TileWidth;
-                        int tileYindex = (int)y / map.TileHeight;
-                        if (tileXindex > 0 && tileYindex > 0 && tileXindex < map.Width && tileYindex < map.Height)
+
+                        for (int x = leftMostPoint; x < rightMostPoint + map.TileWidth; x += map.TileWidth)
                         {
-                            Rectangle currentTile = new Rectangle(x - x % map.TileWidth, y - y % map.TileHeight, map.TileWidth, map.TileHeight);
-                            //tileCollisionChecks.Add(currentTile);
-
-                            Tileset.TilePropertyList tileProperties = new Tileset.TilePropertyList();
-
-
-                            //get tile starting id and then add the tile id for that tile
-                            int tile = map.Layers["meta " + obj.Layer].GetTile(tileXindex, tileYindex);
-                            tileProperties = map.Tilesets["meta"].GetTileProperties(tile);
-
-                            if (tile > 0)
+                            int tileXindex = (int)x / map.TileWidth;
+                            int tileYindex = (int)y / map.TileHeight;
+                            if (tileXindex > 0 && tileYindex > 0 && tileXindex < map.Width && tileYindex < map.Height)
                             {
-                                
-                                if (tileProperties.ContainsKey("TransDown"))
+                                Rectangle currentTile = new Rectangle(x - x % map.TileWidth, y - y % map.TileHeight, map.TileWidth, map.TileHeight);
+                                //tileCollisionChecks.Add(currentTile);
+
+                                Tileset.TilePropertyList tileProperties = new Tileset.TilePropertyList();
+
+                                tileCollisionChecks.Add(currentTile);
+                                //get tile starting id and then add the tile id for that tile
+                                int tile = map.Layers["meta " + obj.Layer].GetTile(tileXindex, tileYindex);
+                                tileProperties = map.Tilesets["meta"].GetTileProperties(tile);
+
+                                if (tile > 0)
                                 {
-                                    PreviousLevel = obj.Layer;
-                                    obj.Layer--;
-                                    Trans = true;
-                                }
-                                else if (tileProperties.ContainsKey("TransUp"))
-                                {
-                                    PreviousLevel = obj.Layer;
-                                    obj.Layer++;
-                                    Trans = true;
-                                }
-                                if (tileProperties.ContainsKey("Collision"))
-                                {
-                                    if (obj.rotatedRect.Intersects(currentTile))
+                                    RotatedRectangle tempRect = obj.rotatedRect;
+                                    tempRect.ChangePosition(obj.Position - tempVelocity);
+                                    if (tileProperties.ContainsKey("Collision") && tempRect.Intersects(currentTile))
+                                    {
                                         return true;
+                                    }
+                                    else if (tileProperties.ContainsKey("TransDown"))
+                                    {
+                                        PreviousLevel = obj.Layer;
+                                        obj.Layer--;
+                                       
+                                    }
+                                    else if (tileProperties.ContainsKey("TransUp"))
+                                    {
+                                        PreviousLevel = obj.Layer;
+                                        obj.Layer++;
+                                        
+                                    }
+                                   
                                 }
                             }
                         }
@@ -314,14 +316,26 @@ namespace Game
             }
             else
             {
-                Vector2 objAfterMove = obj.Position + velocity - Orgin / 2;
+                Vector2 objAfterMove = obj.Position + velocity; //magic number seems to work perfect...why?
+                Rectangle objAfterMoveRect = new Rectangle((int)objAfterMove.X, (int)objAfterMove.Y, obj.Width, obj.Height);
+
+                //now that we have our objects location, we'll have to check all of the tiles that the object is "standing" on and see if they
+                //contain the collision meta value or not
                 for (int y = (int)objAfterMove.Y; y <= (objAfterMove.Y + obj.Height); y += map.TileHeight)
                 {
-                  
-                    for (int x = (int)objAfterMove.X; x <= (objAfterMove.X + obj.Width); x += map.TileWidth)
+
+                    for (int x = (int)objAfterMove.X; x <= (objAfterMove.X + obj.Width * 2); x += map.TileWidth)
                     {
+                        //we'll have to check every tile index that is contained within our objects area
+
                         int tileXindex = (int)x / map.TileWidth;
                         int tileYindex = (int)y / map.TileHeight;
+
+
+                        //lets first build a rectangle out of the tile so we can check for intersections with our objects rectangle
+                        Rectangle currentTile = new Rectangle(x - x % map.TileWidth, y - y % map.TileHeight, map.TileWidth, map.TileHeight);
+
+                        tileCollisionChecks.Add(currentTile);
 
 
                         Tileset.TilePropertyList tileProperties = new Tileset.TilePropertyList();
@@ -333,22 +347,24 @@ namespace Game
 
                         if (tile > 0)
                         {
-                            if (tileProperties.ContainsKey("TransDown"))
+                            if (tileProperties.ContainsKey("Collision") && objAfterMoveRect.Intersects(currentTile))
+                            {
+                                return true;
+                            }
+                        
+                            else if (tileProperties.ContainsKey("TransDown"))
                             {
                                 PreviousLevel = obj.Layer;
                                 obj.Layer--;
-                                Trans = true;
+                         
                             }
                             else if (tileProperties.ContainsKey("TransUp"))
                             {
                                 PreviousLevel = obj.Layer;
                                 obj.Layer++;
-                                Trans = true;
+                              
                             }
-                            if (tileProperties.ContainsKey("Collision"))
-                            {
-                                return true;
-                            }
+                           
                         }
                     }
                 }
@@ -376,6 +392,8 @@ namespace Game
             Primitives2D.DrawLine(batch, new Vector2(Rect.Right, Rect.Bottom), new Vector2(Rect.Left, Rect.Bottom), Color.LightBlue);
             Primitives2D.DrawLine(batch, new Vector2(Rect.Left, Rect.Bottom), new Vector2(Rect.Left, Rect.Top), Color.LightBlue);
             
+
+
         }
 
         

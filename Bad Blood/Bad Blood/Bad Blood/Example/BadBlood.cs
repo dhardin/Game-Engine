@@ -116,6 +116,9 @@ namespace Game {
             //Load content
             map = Map.Load(Path.Combine(Content.RootDirectory, "map.tmx"), Content);
             
+            //make meta data transparent
+            
+            
             Projectile.Texture = Content.Load<Texture2D>(@"Projectile\laser");
            
             
@@ -128,8 +131,7 @@ namespace Game {
             for (int i = 0; i < MAX_LAYERS; i++)
                 WorldObjects.Add(new MultiMap<GameObject>());
 
-            WorldObjects.ElementAt(2).Add(ObjectType.Player, new Player(PlayerIndex.One));
-            WorldObjects.ElementAt(2)[ObjectType.Player].ElementAt(0).Initialize(new Vector2(map.ObjectGroups["objects"].Objects["waypoint1"].X, map.ObjectGroups["objects"].Objects["waypoint1"].Y), 0f, 2);
+            WorldObjects.ElementAt(2).Add(ObjectType.Player, new Player(PlayerIndex.One, new Vector2(map.ObjectGroups["objects"].Objects["waypoint1"].X, map.ObjectGroups["objects"].Objects["waypoint1"].Y), 0f, 2));
             
             gameFont = Content.Load<SpriteFont>("GameFont");
             // Somewhere in your LoadContent() method:
@@ -156,7 +158,7 @@ namespace Game {
                                 
                             case ObjectType.Player:
                                 gameObject.HandleInput(gameTime, GraphicsDevice.Viewport, ref map);
-                                if (gameObject.Trans)
+                                if (gameObject.Layer != i)
                                 {
                                     worldObjectHolder.gameObject = gameObject;
                                     worldObjectHolder.toLevel = gameObject.Layer;
@@ -165,8 +167,20 @@ namespace Game {
                                     WorldObjectManager.Add(worldObjectHolder);
                                 }
                                 if (gameObject.pState.CurrentState.Equals(ProcessState.Shooting))
-                                {                               
-                                    worldObjectHolder.gameObject = new Projectile(gameObject.Position, gameObject.rotatedRect.Rotation, ProjectileType.Standard, gameObject.Layer);
+                                {    
+                                    //in order to place our projectile initially, we want to think of our object as a unit cirle.
+                                    //the projectile placement is relative to the player's position, so we'll add the position.
+                                    //after, we need to "center" the projectile in the center of the player (i.e., orgin) so we'll add that relative to the
+                                    //player's position since the position is always the top left on our character.
+                                    //now that we have our projectile centered, we need to position it just at the edge of the gameobject's texture circumference.
+                                    //This can be thought of as adding the vector of the direction the gameobject is facing multiplied by the radius (width * 0.5)
+                                    //of the gameobject. 
+                                    //
+                                    //Later on, we'll have to take into consideration different weapon type's physical length so the projectile is placed correctly.
+                                    float xPos = gameObject.Position.X  + gameObject.GunBarrelPosition.X + (float)((gameObject.Width) * Math.Cos(gameObject.Rotation));
+                                    float yPos = gameObject.Position.Y + gameObject.GunBarrelPosition.Y + (float)((gameObject.Width) * Math.Sin(gameObject.Rotation));
+                                  
+                                    worldObjectHolder.gameObject = new Projectile(new Vector2(xPos,yPos), gameObject.Rotation, ProjectileType.Standard, gameObject.Layer);
                                     worldObjectHolder.fromLevel = gameObject.Layer;
                                     worldObjectHolder.toLevel = gameObject.Layer;
                                     worldObjectHolder.objectType = ObjectType.Projectile;
@@ -176,7 +190,7 @@ namespace Game {
 
                                 break;
                             case ObjectType.Projectile:
-                                if (gameObject.Trans)
+                                if (gameObject.Layer != i)
                                 {
                                     worldObjectHolder.gameObject = gameObject;
                                     worldObjectHolder.toLevel = gameObject.Layer;
@@ -206,12 +220,8 @@ namespace Game {
             
             foreach (WorldObjectHolder worldObjectHolder in WorldObjectManager)
             {
-                if (worldObjectHolder.gameObject.Trans == true)
-                {
-                    worldObjectHolder.gameObject.Trans = false;
                     WorldObjects[worldObjectHolder.toLevel].Add(worldObjectHolder.objectType, worldObjectHolder.gameObject);
                     WorldObjects[worldObjectHolder.fromLevel][worldObjectHolder.objectType].Remove(worldObjectHolder.gameObject);
-                }
                 switch (worldObjectHolder.objectType)
                 {
                     case ObjectType.Player:

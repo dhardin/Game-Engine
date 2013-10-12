@@ -54,7 +54,7 @@
  <tileset firstgid="8077" name="tree" tilewidth="106" tileheight="95">
   <image source="tree.png" width="106" height="95"/>
  </tileset>
- <layer name="Ground 0" width="100" height="100" visible="0">
+ <layer name="Ground 0" width="100" height="100">
   <data>
    <tile gid="17"/>
    <tile gid="17"/>
@@ -10058,7 +10058,7 @@
    <tile gid="17"/>
   </data>
  </layer>
- <layer name="meta 0" width="100" height="100" visible="0">
+ <layer name="meta 0" width="100" height="100">
   <data>
    <tile gid="0"/>
    <tile gid="0"/>
@@ -20062,7 +20062,7 @@
    <tile gid="0"/>
   </data>
  </layer>
- <layer name="Ground 1" width="100" height="100" opacity="0.99">
+ <layer name="Ground 1" width="100" height="100" visible="0" opacity="0.99">
   <data>
    <tile gid="0"/>
    <tile gid="0"/>
@@ -21881,10 +21881,10 @@
    <tile gid="0"/>
    <tile gid="0"/>
    <tile gid="0"/>
-   <tile gid="8073"/>
-   <tile gid="8073"/>
-   <tile gid="8073"/>
-   <tile gid="8073"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
+   <tile gid="0"/>
    <tile gid="0"/>
    <tile gid="0"/>
    <tile gid="0"/>
@@ -41893,7 +41893,7 @@
    <tile gid="0"/>
    <tile gid="0"/>
    <tile gid="0"/>
-   <tile gid="0"/>
+   <tile gid="8065"/>
    <tile gid="8065"/>
    <tile gid="8065"/>
    <tile gid="8065"/>
@@ -50074,7 +50074,7 @@
    <tile gid="0"/>
   </data>
  </layer>
- <layer name="Ground 2" width="100" height="100">
+ <layer name="Ground 2" width="100" height="100" visible="0">
   <data>
    <tile gid="533"/>
    <tile gid="533"/>

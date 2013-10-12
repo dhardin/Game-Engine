@@ -38,9 +38,7 @@ namespace Game
             // The amount of damage the projectile can inflict to an enemy
             public int Damage;
 
-            private float rotationAngle;
-
-            const float SIZE_MOD = 0.3f;
+            const float SIZE_MOD = 0.4f;
 
             private ProjectileType projectileType;
 
@@ -63,25 +61,27 @@ namespace Game
             #endregion
             public Projectile(Vector2 position, float angle, ProjectileType projectile, int currentLayer)
             {
-                Active = true;
-                Position = position;
+
+               
                 Layer = currentLayer;
-                 projectileType = projectile;
-                 Height = (int)(Texture.Height * SIZE_MOD);
-                 Width = (int)(Texture.Width * SIZE_MOD);
-                rotationAngle = angle;
-                Orgin = new Vector2(Width / 2, Height / 2);
+                Rotation = angle;
+                Height = (int)(Texture.Height * SIZE_MOD);
+                Width = (int)(Texture.Width * SIZE_MOD);
+                Orgin = new Vector2(Texture.Width * 0.5f, Texture.Height * 0.5f);
+                Position = position - Orgin * SIZE_MOD; //this step is needed so our projectile appears to fire out of the gun's barrel and not off to the side.
+                Rect = new Rectangle((int)Position.X, (int)Position.Y, Width, Height);
+
+                this.rotatedRect = new RotatedRectangle(Rect, Rotation);
+                Active = true;
                 
-                //firePosition is the velocity of the projectile (i.e., the direction it's moving in)
-                firePosition.X = (float)Math.Cos(rotationAngle);
-                firePosition.Y = (float)Math.Sin(rotationAngle);
+                 projectileType = projectile;
+              
+                firePosition.X = (float)Math.Cos(Rotation);
+                firePosition.Y = (float)Math.Sin(Rotation);
                 Damage = 5;
                 projectileMoveSpeed = 8.0f * MAX_PROJECTILE_SPEED_MULTIPLYER;
-                
-                //Initialize();
-                rotatedRect = new RotatedRectangle(new Rectangle((int)position.X, (int)position.Y, Width, Height), rotationAngle);
-                //Initialize();
 
+              
             }
 
             public override bool CollidesWith(Rectangle rectangle, ref Vector2 newPosition)
@@ -118,11 +118,15 @@ namespace Game
                     else if (willCollideLevel(ref map, this, new Vector2(projectileMoveSpeed * firePosition.X, projectileMoveSpeed * firePosition.Y), true))
                         Active = false;
 
-                    this.Position.X += (projectileMoveSpeed * firePosition.X);
-                    this.Position.Y += (projectileMoveSpeed * firePosition.Y);
+                    if (Active)
+                    {
+                        this.Position.X += (projectileMoveSpeed * firePosition.X);
+                        this.Position.Y += (projectileMoveSpeed * firePosition.Y);
 
-                   //rotatedRect.ChangePosition(new Vector2(Position.X - rotatedRect.Width / 2, Position.Y));
-                    this.rotatedRect.ChangePosition(this.Position - this.Orgin / 2);                    
+                        this.rotatedRect.ChangePosition(this.Position);
+                        this.Rect.Location = new Point((int)(this.Position.X), (int)(this.Position.Y));
+                    }
+                   
                 }
             }
             public override void Draw(SpriteBatch batch, Vector2 offset, Vector2 viewportPosition, float opacity, int width, int height)
@@ -134,15 +138,31 @@ namespace Game
 
                 if (Active)
                 {
+                    //batch.Draw(Texture, this.Position, null, Color.White, this.Rotation, this.Orgin, SIZE_MOD, SpriteEffects.None, 0);
 
-                    batch.Draw(Texture, Position, null, Color.Gold, rotationAngle,
-                    new Vector2(Width / 2, Height / 2), SIZE_MOD, SpriteEffects.None, 0f);
+                    batch.Draw(Texture, Position + Orgin * SIZE_MOD, null, Color.White, this.Rotation, Orgin, SIZE_MOD, SpriteEffects.None, 0);
 
 
-                    Primitives2D.DrawLine(batch, rotatedRect.UpperLeftCorner(), rotatedRect.UpperRightCorner(), Color.LightPink);
-                    Primitives2D.DrawLine(batch, rotatedRect.UpperRightCorner(), rotatedRect.LowerRightCorner(), Color.LightPink);
-                    Primitives2D.DrawLine(batch, rotatedRect.LowerRightCorner(), rotatedRect.LowerLeftCorner(), Color.LightPink);
-                    Primitives2D.DrawLine(batch, rotatedRect.LowerLeftCorner(), rotatedRect.UpperLeftCorner(), Color.LightPink);
+                    //int lowestPoint = (int)(Math.Min((int)Math.Min(rotatedRect.UpperLeftCorner().Y, rotatedRect.UpperRightCorner().Y), (int)Math.Min(rotatedRect.LowerLeftCorner().Y, rotatedRect.LowerRightCorner().Y)));
+                    //int highestPoint = (int)(Math.Max((int)Math.Max(rotatedRect.UpperLeftCorner().Y, rotatedRect.UpperRightCorner().Y), (int)Math.Max(rotatedRect.LowerLeftCorner().Y, rotatedRect.LowerRightCorner().Y)));
+                    //int leftMostPoint = (int)(Math.Min((int)Math.Min(rotatedRect.UpperLeftCorner().X, rotatedRect.UpperRightCorner().X), (int)Math.Min(rotatedRect.LowerLeftCorner().X, rotatedRect.LowerRightCorner().X)));
+                    //int rightMostPoint = (int)(Math.Max((int)Math.Max(rotatedRect.UpperLeftCorner().X, rotatedRect.UpperRightCorner().X), (int)Math.Max(rotatedRect.LowerLeftCorner().X, rotatedRect.LowerRightCorner().X)));
+
+                    //Primitives2D.DrawCircle(batch, new Vector2(leftMostPoint, lowestPoint), 2f, 100, Color.Red);
+                    //Primitives2D.DrawCircle(batch, new Vector2(leftMostPoint, highestPoint), 2f, 100, Color.Green);
+                    //Primitives2D.DrawCircle(batch, new Vector2(rightMostPoint, lowestPoint), 2f, 100, Color.Blue);
+                    //Primitives2D.DrawCircle(batch, new Vector2(rightMostPoint, highestPoint), 2f, 100, Color.White);
+
+                    //Primitives2D.DrawLine(batch, rotatedRect.UpperLeftCorner(), rotatedRect.UpperRightCorner(), Color.LightPink);
+                    //Primitives2D.DrawLine(batch, rotatedRect.UpperRightCorner(), rotatedRect.LowerRightCorner(), Color.LightPink);
+                    //Primitives2D.DrawLine(batch, rotatedRect.LowerRightCorner(), rotatedRect.LowerLeftCorner(), Color.LightPink);
+                    //Primitives2D.DrawLine(batch, rotatedRect.LowerLeftCorner(), rotatedRect.UpperLeftCorner(), Color.LightPink);
+
+                    //Primitives2D.DrawLine(batch, new Vector2(Rect.Left, Rect.Top), new Vector2(Rect.Right, Rect.Top), Color.LightBlue);
+                    //Primitives2D.DrawLine(batch, new Vector2(Rect.Right, Rect.Top), new Vector2(Rect.Right, Rect.Bottom), Color.LightBlue);
+                    //Primitives2D.DrawLine(batch, new Vector2(Rect.Right, Rect.Bottom), new Vector2(Rect.Left, Rect.Bottom), Color.LightBlue);
+                    //Primitives2D.DrawLine(batch, new Vector2(Rect.Left, Rect.Bottom), new Vector2(Rect.Left, Rect.Top), Color.LightBlue);
+
 
                     for (int i = 0; i < tileCollisionChecks.Count; i++)
                     {
@@ -153,30 +173,16 @@ namespace Game
                         Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Right, tileCollisionChecks[i].Bottom), new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Bottom), Color.Red);
                         Primitives2D.DrawLine(batch, new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Bottom), new Vector2(tileCollisionChecks[i].Left, tileCollisionChecks[i].Top), Color.Red);
                     }
+
                 }
-                //Primitives2D.DrawLine(batch, rotatedRect.UpperLeftCorner(), rotatedRect.UpperRightCorner(), Color.LightPink);
-                //Primitives2D.DrawLine(batch, rotatedRect.UpperRightCorner(), rotatedRect.LowerRightCorner(), Color.LightPink);
-                //Primitives2D.DrawLine(batch, rotatedRect.LowerRightCorner(), rotatedRect.LowerLeftCorner(), Color.LightPink);
-                //Primitives2D.DrawLine(batch, rotatedRect.LowerLeftCorner(), rotatedRect.UpperLeftCorner(), Color.LightPink);
-
-                //Primitives2D.DrawLine(batch, new Vector2(Rect.Left, Rect.Top), new Vector2(Rect.Right, Rect.Top), Color.LightBlue);
-                //Primitives2D.DrawLine(batch, new Vector2(Rect.Right, Rect.Top), new Vector2(Rect.Right, Rect.Bottom), Color.LightBlue);
-                //Primitives2D.DrawLine(batch, new Vector2(Rect.Right, Rect.Bottom), new Vector2(Rect.Left, Rect.Bottom), Color.LightBlue);
-                //Primitives2D.DrawLine(batch, new Vector2(Rect.Left, Rect.Bottom), new Vector2(Rect.Left, Rect.Top), Color.LightBlue);
-
-
-
-                //draw mouse crosshair
-                //Primitives2D.DrawLine(batch, this.Position, mousePosition, Color.Red, 0.6f);
-
             }
 
             public override void Draw(SpriteBatch batch)
             {
                 if (Active)
                 {
-                   
-                    batch.Draw(Texture, Position, null, Color.White, rotationAngle /*+ (float)(Math.PI * 0.5f)*/,
+
+                    batch.Draw(Texture, Position, null, Color.White, Rotation /*+ (float)(Math.PI * 0.5f)*/,
                     new Vector2(Width / 2, Height / 2), 1f, SpriteEffects.None, 0f);
 
 
